@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Crown, ArrowRight, SkipForward, RotateCcw, User, Info } from 'lucide-react';
+import { Trophy, Crown, ArrowRight, SkipForward, RotateCcw, User, Info, Volume2, VolumeX } from 'lucide-react';
 
 // --- TYPES ---
 interface Question {
@@ -241,6 +241,33 @@ export default function App() {
   const [timer, setTimer] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Simple background music loop
+    audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    audioRef.current.loop = true;
+    audioRef.current.volume = 0.15; // Keep it subtle
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isMusicPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.log("Audio play blocked by browser"));
+      }
+      setIsMusicPlaying(!isMusicPlaying);
+    }
+  };
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [kismatValues, setKismatValues] = useState<number[]>([]);
   const [kismatRevealed, setKismatRevealed] = useState<number[]>([]);
@@ -498,19 +525,39 @@ export default function App() {
       <div className="caricature-card p-10 w-full max-w-md text-center">
         <h1 className="font-title text-5xl font-black mb-4 text-black drop-shadow-[4px_4px_0_white]">QUIZ TIME!</h1>
         <p className="text-xl font-bold mb-8 text-black/70">How many players are joining?</p>
-        <div className="flex justify-center gap-4 mb-10">
-          {[2, 3, 4].map((n) => (
-            <button
-              key={n}
-              onClick={() => setPlayerCount(n)}
-              className={`w-16 h-16 rounded-2xl border-4 border-black font-title text-2xl font-black transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                playerCount === n ? 'bg-[#FFD600] translate-x-[2px] translate-y-[2px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-[#FFF9C4]'
-              }`}
+        
+        <div className="flex flex-col items-center gap-6 mb-10">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setPlayerCount(Math.max(2, playerCount - 1))}
+              className="w-12 h-12 rounded-xl border-4 border-black bg-white font-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             >
-              {n}
+              -
             </button>
-          ))}
+            <input
+              type="number"
+              min="2"
+              max="20"
+              value={playerCount}
+              onChange={(e) => setPlayerCount(Math.min(20, Math.max(2, parseInt(e.target.value) || 2)))}
+              className="w-24 h-16 rounded-2xl border-4 border-black bg-[#FFD600] text-center font-title text-3xl font-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            />
+            <button 
+              onClick={() => setPlayerCount(Math.min(20, playerCount + 1))}
+              className="w-12 h-12 rounded-xl border-4 border-black bg-white font-black text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            >
+              +
+            </button>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-2 max-w-[280px]">
+            {Array.from({ length: Math.min(playerCount, 12) }).map((_, i) => (
+              <span key={i} className="text-2xl drop-shadow-[2px_2px_0_white]">{AVATARS[i % AVATARS.length]}</span>
+            ))}
+            {playerCount > 12 && <span className="font-black text-xl">+{playerCount - 12}</span>}
+          </div>
         </div>
+
         <button onClick={handleSetupPlayers} className="btn-caricature-primary w-full">
           NEXT STEP <ArrowRight className="inline ml-2" />
         </button>
@@ -754,7 +801,7 @@ export default function App() {
                     scale: 1,
                     opacity: 1
                   }}
-                  whileHover={!shouldShowBack ? { y: -15, scale: 1.05, rotate: [0, -2, 2, 0] } : {}}
+                  whileHover={!shouldShowBack ? { y: -15, scale: 1.05, rotate: 2 } : {}}
                   transition={{ 
                     type: "spring",
                     stiffness: 300,
@@ -843,6 +890,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen selection:bg-[#FF5252]/30">
+      <button 
+        onClick={toggleMusic}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+      >
+        {isMusicPlaying ? <Volume2 size={24} /> : <VolumeX size={24} className="text-black/30" />}
+      </button>
+
       {players.length > 0 && phase !== 'setup-names' && phase !== 'setup-count' && (
         <>
           <Scoreboard players={players} />
