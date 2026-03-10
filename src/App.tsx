@@ -403,8 +403,11 @@ export default function App() {
   const nextQuestion = () => {
     setSelectedOption(null);
     setIsReady(false);
-    setTimer(60);
-    setTimerRunning(false);
+    
+    if (currentRound < 3) {
+      setTimer(60);
+      setTimerRunning(false);
+    }
 
     const maxQs = currentRound === 1 ? 4 : (currentRound === 2 ? 3 : 999);
 
@@ -428,9 +431,10 @@ export default function App() {
       }
     } else {
       // Speed round logic (Round 3)
-      if (timerRunning && timer > 0) {
+      // In Round 3, we only end the turn if the timer is 0
+      if (timer > 0) {
         setCurrentQuestionIdx(prev => prev + 1);
-        // Phase stays 'question'
+        // Phase stays 'question', timer keeps running
       } else {
         endPlayerTurn();
       }
@@ -438,6 +442,7 @@ export default function App() {
   };
 
   const endPlayerTurn = () => {
+    if (phase !== 'question') return;
     setTimerRunning(false);
     if (timerRef.current) clearInterval(timerRef.current);
     setCurrentQuestionIdx(0);
@@ -466,9 +471,9 @@ export default function App() {
   };
 
   const handleKismatPick = (idx: number) => {
-    if (kismatRevealed.includes(idx) || revealAll) return;
+    if (kismatRevealed.length > 0 || revealAll) return;
     
-    setKismatRevealed(prev => [...prev, idx]);
+    setKismatRevealed([idx]);
     const val = kismatValues[idx];
     updatePlayerScore(currentPlayerIdx, val);
 
@@ -506,7 +511,7 @@ export default function App() {
   const updatePlayerScore = (idx: number, amount: number) => {
     setPlayers(prev => {
       const newPlayers = [...prev];
-      newPlayers[idx].score += amount;
+      newPlayers[idx] = { ...newPlayers[idx], score: newPlayers[idx].score + amount };
       return newPlayers;
     });
   };
